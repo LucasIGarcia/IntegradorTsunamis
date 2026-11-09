@@ -4,7 +4,7 @@ Proyecto Integrador · Ciencia de Datos · UTN FRM · 2026 · Grupo 9 (Comisión
 
 **Pregunta:** ¿Qué características de un sismo permiten estimar si está asociado a un tsunami?
 
-**Aplicación:** _(pegar acá la URL pública de Streamlit Community Cloud)_
+**Aplicación:** https://integradortsunamis-grupo09.streamlit.app/
 
 La aplicación cuenta el proyecto entero, con estas secciones:
 
