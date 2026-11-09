@@ -77,4 +77,3 @@ El modelo guardado sólo se carga con esa misma versión de scikit-learn.
 
 Es un gradient boosting (`HistGradientBoostingClassifier`) con magnitud, profundidad, latitud, longitud, tipo de magnitud y mar o tierra. La validación es por grupos de 2° × 2° y mes. Usa umbral 0,27, elegido por validación cruzada para priorizar el recall.
 
-Ojo: la etiqueta `tsunami` no dice si hubo una ola. Es la marca que pone la USGS según su criterio de alerta, que depende de la magnitud y de la región.
