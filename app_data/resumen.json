@@ -1,0 +1,94 @@
+{
+  "umbral": 0.27,
+  "semilla": 42,
+  "corte": "2026-04-01",
+  "hiperparametros": {
+    "learning_rate": 0.05,
+    "max_iter": 100,
+    "max_leaf_nodes": 15,
+    "class_weight": null
+  },
+  "version_sklearn": "1.9.1",
+  "datos": {
+    "archivo": "DatasetTsunami.csv",
+    "desde": "2019-01-01",
+    "hasta": "2026-07-30"
+  },
+  "filtros": [
+    {
+      "paso": "Dataset del pipeline",
+      "filas": 13602,
+      "con_marca": 544
+    },
+    {
+      "paso": "Corte antes de 2026-04-01",
+      "filas": 12915,
+      "con_marca": 543
+    },
+    {
+      "paso": "Entrenamiento (80 %)",
+      "filas": 10332,
+      "con_marca": 435
+    },
+    {
+      "paso": "Test (20 %)",
+      "filas": 2583,
+      "con_marca": 108
+    }
+  ],
+  "validacion_cruzada": {
+    "f1_macro": 0.8883975619295135,
+    "recall_tsunami": 0.903448275862069,
+    "precision_tsunami": 0.6980461811722913,
+    "pr_auc": 0.8057620971203481,
+    "alertas_cada_100": 5.449090205187766
+  },
+  "validacion_cruzada_umbral_05": {
+    "f1_macro": 0.8806404384885322,
+    "recall_tsunami": 0.7839080459770115,
+    "precision_tsunami": 0.7594654788418709,
+    "pr_auc": 0.8057620971203481,
+    "alertas_cada_100": 4.345722028648858
+  },
+  "test": {
+    "f1_macro": 0.8760237718868247,
+    "recall_tsunami": 0.9166666666666666,
+    "precision_tsunami": 0.6556291390728477,
+    "pr_auc": 0.8035548255526584,
+    "alertas_cada_100": 5.845915602013163,
+    "verdaderos_negativos": 2423,
+    "falsas_alarmas": 52,
+    "falsos_negativos": 9,
+    "aciertos_con_marca": 99
+  },
+  "piso_test": {
+    "f1_macro": 0.4893238434163701,
+    "pr_auc": 0.041811846689895474
+  },
+  "rangos": {
+    "mag": [
+      5.0,
+      8.8
+    ],
+    "depth": [
+      0.0,
+      660.0
+    ],
+    "latitude": [
+      -69.7739,
+      87.386
+    ],
+    "longitude": [
+      -179.9896,
+      179.9981
+    ]
+  },
+  "magtypes": [
+    "mww",
+    "mb",
+    "mw",
+    "ml",
+    "mwr",
+    "mwb"
+  ]
+}
