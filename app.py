@@ -31,6 +31,35 @@ ESCALA_RESULTADO = alt.Scale(domain=RESULTADOS, range=COLORES_RESULTADO)
 REGION_ALASKA_OESTE = ["Alaska", "Oregon", "off the coast of Oregon", "Canada", "CA", "California", "OR",
                        "south of Alaska"]
 
+# Tipos de magnitud de la USGS: el nombre que muestra el selector de «Probá el modelo» y la explicación de su cuadro
+NOMBRES_MAGTYPE = {
+    "mww": "Magnitud de momento, fase W (la estándar de la USGS)",
+    "mb": "Magnitud de ondas de cuerpo (sismos moderados y lejanos)",
+    "mw": "Magnitud de momento, informada por otra red",
+    "mwr": "Magnitud de momento regional",
+    "ml": "Magnitud local, tipo Richter (redes regionales)",
+    "mwb": "Magnitud de momento con ondas de cuerpo",
+}
+EXPLICACION_MAGTYPE = {  # sigla: (cómo se calcula, cuándo la usa la USGS)
+    "mww": ("Calcula el momento sísmico (qué tan grande es la falla que se rompió y cuánto se deslizó) con la fase W, "
+            "una onda de período muy largo que registran estaciones de todo el mundo.",
+            "Es la que la USGS prefiere para la mayoría de los sismos medianos y grandes, y la primera que publica en "
+            "los grandes. Por eso es la de casi todos los sismos con marca."),
+    "mb": ("Mide la amplitud de las ondas P (las primeras en llegar) en sismógrafos lejanos al sismo.",
+           "Sismos moderados y lejanos que todavía no tienen magnitud de momento. Se satura cerca de 6: en sismos "
+           "más grandes deja de crecer, así que no sirve para medirlos."),
+    "mw": ("Calcula el momento sísmico, pero el dato lo aporta otra agencia o red sismológica.",
+           "Cuando la magnitud preferida del catálogo viene de un contribuyente externo, por ejemplo una red de "
+           "California."),
+    "mwr": ("Calcula el momento sísmico con ondas registradas por estaciones de la región del sismo.",
+            "Sismos moderados en zonas con buena red regional (en los datos: Chile, Alaska y Taiwán, entre otras)."),
+    "ml": ("Es la escala original de Richter: mide la amplitud de las ondas en estaciones cercanas.",
+           "La informan redes regionales (en los datos: Alaska, Puerto Rico, Hawái y Nevada). También se satura en "
+           "sismos grandes."),
+    "mwb": ("Calcula el momento sísmico con ondas de cuerpo de período largo.",
+            "Una alternativa a mww para sismos moderados a grandes."),
+}
+
 
 # --- Formato en castellano ----------------------------------------------------------------------
 def pct(x, dec=0):
@@ -75,6 +104,8 @@ UMBRAL = guardado["umbral"]
 modelados = sismos[sismos["conjunto"] != "sin marca cargada"]
 test = resumen["test"]
 vc = resumen["validacion_cruzada"]
+en_mb = modelados[modelados["magType"] == "mb"]               # el tipo de magnitud que más mueve al modelo
+cuota_mww = (modelados["magType"] == "mww").mean()
 
 if guardado.get("version_sklearn") != sklearn.__version__:
     st.warning(f"El modelo se guardó con scikit-learn {guardado.get('version_sklearn')} y acá corre "
@@ -274,6 +305,9 @@ USGS no marcó.
 
 **En qué se apoya** (importancia por permutación, f1 macro): longitud 0,17, magnitud 0,16, latitud 0,15,
 tipo de magnitud 0,10; profundidad y mar/tierra, nada. La ubicación no es fuga: refleja la regla regional de la USGS.
+El tipo de magnitud pesa sobre todo por *mb*: la USGS lo usa para sismos moderados y lejanos que todavía no tienen
+magnitud de momento, y casi ninguno lleva marca ({int(en_mb['tsunami'].sum())} de {miles(len(en_mb))}). Por eso, elegir
+*mb* en «Probá el modelo» baja mucho la probabilidad.
 """)
     # TODO (grupo): corregir en el notebook la nota de 10.2 (la permutación usa predict = umbral 0,5) y actualizar acá
 
@@ -332,11 +366,53 @@ r = resumen["rangos"]
 p1, p2 = st.columns(2)
 mag = p1.slider("Magnitud", r["mag"][0], r["mag"][1], 7.0, step=0.1, format="%.1f")
 depth = p1.slider("Profundidad (km)", r["depth"][0], r["depth"][1], 25.0, step=1.0)
-mag_type = p1.selectbox("Tipo de magnitud", resumen["magtypes"],
-                        help="Sólo los tipos con al menos 20 sismos en el entrenamiento")
 lat = p2.slider("Latitud", r["latitude"][0], r["latitude"][1], -33.5, step=0.1, format="%.1f")
 lon = p2.slider("Longitud", r["longitude"][0], r["longitude"][1], -72.0, step=0.1, format="%.1f")
 en_el_mar = p2.radio("¿El epicentro está en el mar o en tierra?", ["mar", "tierra"], horizontal=True) == "mar"
+
+with st.expander("Opciones avanzadas: tipo de magnitud"):
+    tipos = resumen["magtypes"]
+    mag_type = st.selectbox("Tipo de magnitud", tipos, index=tipos.index("mww") if "mww" in tipos else 0,
+                            format_func=lambda m: f"{NOMBRES_MAGTYPE.get(m, m)} ({m})",
+                            help="Sólo se ofrecen los tipos con al menos 20 sismos en el entrenamiento.")
+    st.caption(f"Es el método con que la USGS calculó la magnitud del sismo. Si no sabés cuál elegir, dejá *mww*: es "
+               f"la de {round(cuota_mww * 10)} de cada 10 sismos y la que la USGS usa para los sismos grandes. "
+               "Qué significa cada una está en el cuadro de abajo.")
+
+with st.expander("¿Qué significa cada tipo de magnitud?"):
+    conteo_tipos = modelados.groupby("magType")["tsunami"].agg(["size", "sum"])
+    filas = []
+    for m in resumen["magtypes"]:
+        como, cuando = EXPLICACION_MAGTYPE.get(m, ("—", "—"))
+        n, k = (int(conteo_tipos.loc[m, "size"]), int(conteo_tipos.loc[m, "sum"])) if m in conteo_tipos.index else (0, 0)
+        en_datos = f"{miles(n)} sismos · {pct(k / n, 1)} con marca" if n else "—"
+        filas.append(f"| **{m}** | {NOMBRES_MAGTYPE.get(m, m)} | {como} | {cuando} | {en_datos} |")
+    st.markdown(f"""
+La **magnitud** mide el tamaño de un sismo, pero hay varias formas de calcularla. La sigla indica qué método usó la
+USGS (o la red que informó el sismo). Hay dos familias:
+
+- **Magnitudes de momento** (las que empiezan con *mw*): se calculan a partir del momento sísmico, es decir, de qué tan
+  grande es la falla que se rompió y cuánto se deslizó. Es la medida física más completa y **no se satura**: sirve
+  igual para un sismo de 5 que para uno de 9.
+- **Magnitudes de amplitud** (*mb* y *ml*): miden qué tan fuerte se mueve un tipo de onda en el sismógrafo. Son más
+  rápidas de calcular, pero **se saturan**: en los sismos grandes dejan de crecer aunque el sismo sea mayor.
+
+| Sigla | Nombre | Cómo se calcula | Cuándo la usa la USGS | En los datos (hasta marzo de 2026) |
+|---|---|---|---|---|
+""" + "\n".join(filas) + f"""
+
+**Por qué cambia la predicción.** Las magnitudes de momento dan resultados casi iguales entre sí. La que cambia todo es
+*mb*: casi ningún sismo informado en mb tiene marca ({int(en_mb['tsunami'].sum())} de {miles(len(en_mb))}), porque la
+USGS la usa en sismos moderados. Por eso el modelo aprendió a asociar *mb* con «sin marca». Las siglas que no aparecen
+en el selector (como *mwp* o *mwc*) tienen menos de 20 sismos en el entrenamiento y no se ofrecen.
+""")
+
+if mag_type == "mb" and mag >= 6.5:
+    todos_mb = sismos[sismos["magType"] == "mb"]
+    st.warning(f"Combinación casi inexistente: la escala *mb* se satura cerca de magnitud 6, así que la USGS casi no "
+               f"informa en mb sismos tan grandes. En los datos hay {(todos_mb['mag'] >= 6.5).sum()} de "
+               f"{miles(len(todos_mb))} (el mayor, de {num(todos_mb['mag'].max(), 1)}). El modelo casi no vio casos "
+               "así: tomá esta probabilidad con cuidado.")
 
 probabilidad = guardado["pipeline"].predict_proba(modelo.caso(mag, depth, lat, lon, mag_type, en_el_mar))[0, 1]
 m1, m2 = st.columns(2)
@@ -344,7 +420,7 @@ m1.metric("probabilidad de que la USGS lo marque", pct(probabilidad))
 m2.metric(f"alerta (umbral {num(UMBRAL, 2)})", "sí" if probabilidad >= UMBRAL else "no")
 
 tu_sismo = alt.Chart(pd.DataFrame({"latitude": [lat], "longitude": [lon]})).mark_point(
-    shape="cross", size=400, strokeWidth=3, color="#222222").encode(longitude="longitude:Q", latitude="latitude:Q")
+    shape="cross", size=400, strokeWidth=3, color="#e3242b").encode(longitude="longitude:Q", latitude="latitude:Q")
 st.altair_chart(alt.layer(fondo, tu_sismo).project(type="equirectangular").properties(width=900, height=360), theme=None)
 # TODO (grupo): ¿sumar un menú «partir de un sismo real», como el ejemplo de la cátedra?
 
