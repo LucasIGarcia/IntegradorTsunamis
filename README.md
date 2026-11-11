@@ -164,4 +164,4 @@ Grupo 9 · Comisión 5K09 · Ciencia de Datos · Ingeniería en Sistemas de Info
 - Diego Daza
 - Lucas García
 - Juan Manuel Sosa
-- Frida
+- Porteros Yadhira
