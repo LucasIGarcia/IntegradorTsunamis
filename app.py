@@ -236,7 +236,8 @@ with st.expander("Cómo lo sabemos"):
 **Validación:** `StratifiedGroupKFold` de 5 pedazos, con grupos de 2° × 2° y mes para que las réplicas de un sismo
 no queden de los dos lados. El test (20 %) se separó con el mismo criterio y se miró una sola vez.
 
-**La comparación** (f1 macro en validación cruzada, media ± desvío; notebook de la Entrega 3):
+**La comparación** (f1 macro en validación cruzada, media ± desvío; notebook de la Entrega 3). Las cuatro familias
+se probaron primero con sus valores por defecto; la elegida se ajustó después:
 
 | Modelo | f1 macro |
 |---|---|
@@ -244,9 +245,16 @@ no queden de los dos lados. El test (20 %) se separó con el mismo criterio y se
 | Regresión logística | 0,747 ± 0,025 |
 | Árbol de decisión | 0,842 ± 0,014 |
 | Random forest | 0,872 ± 0,016 |
-| **Gradient boosting (elegido)** | 0,867 ± 0,016 |
+| Gradient boosting | 0,867 ± 0,016 |
+| **Gradient boosting ajustado (el que usa la app)** | **0,881 ± 0,011** |
 
-Random forest y gradient boosting empatan; se eligió el boosting porque entrena unas tres veces más rápido.
+**¿Por qué el boosting, si el random forest tiene un f1 más alto?** Porque sin ajustar empatan: la diferencia es de
+0,005, tres veces menor que el desvío (0,016). Sus rangos típicos (0,856 a 0,888 y 0,851 a 0,883) se superponen casi
+por completo, y con otra partición de los pliegues el orden podría invertirse. En PR-AUC también empatan (0,784 contra
+0,783). Ante el empate se decidió por lo práctico: el boosting entrena unas tres veces más rápido (`build_app.py` lo
+entrena seis veces cada vez que se actualizan los datos) y da un modelo más liviano para la app (100 árboles de 15
+hojas, contra 300 árboles sin límite de profundidad). Una vez ajustado llega a 0,881 y supera a todos los de la tabla.
+
 La logística pierde porque no puede dibujar la «caja» geográfica de Alaska.
 
 **El ajuste:** `GridSearchCV` (36 combinaciones). Ganó tasa 0,05, 100 árboles, 15 hojas y sin `class_weight`:
